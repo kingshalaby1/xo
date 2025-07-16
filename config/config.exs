@@ -7,6 +7,19 @@
 # General application configuration
 import Config
 
+config :xo, :scopes,
+  user: [
+    default: true,
+    module: Xo.Accounts.Scope,
+    assign_key: :current_scope,
+    access_path: [:user, :id],
+    schema_key: :user_id,
+    schema_type: :id,
+    schema_table: :users,
+    test_data_fixture: Xo.AccountsFixtures,
+    test_setup_helper: :register_and_log_in_user
+  ]
+
 config :xo,
   ecto_repos: [Xo.Repo],
   generators: [timestamp_type: :utc_datetime]
