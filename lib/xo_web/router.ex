@@ -21,6 +21,10 @@ defmodule XoWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    
+    # Game routes
+    live "/games", GameLive.Index, :index
+    live "/games/:game_id", GameLive.Play, :play
   end
 
   # Other scopes may use custom stacks.

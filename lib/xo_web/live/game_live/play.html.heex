@@ -1,0 +1,179 @@
+<div class="max-w-4xl mx-auto p-6">
+  <!-- Header -->
+  <div class="text-center mb-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-2">XO Game</h1>
+    <div class="text-lg text-gray-600">
+      Game ID: <span class="font-mono bg-gray-100 px-2 py-1 rounded"><%= @game_id %></span>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <%= if @error_message do %>
+    <div class="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+      <%= @error_message %>
+    </div>
+  <% end %>
+
+  <!-- Players Info -->
+  <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Player X -->
+      <div class="flex items-center space-x-4">
+        <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+          <span class="text-white font-bold text-xl">X</span>
+        </div>
+                 <div>
+           <h3 class="text-lg font-semibold text-gray-800"><%= @game.player_x_name %></h3>
+           <p class="text-sm text-gray-500">Player X</p>
+         </div>
+         <%= if @game.current_player == "x" and @game.status == "active" do %>
+          <div class="ml-auto">
+            <span class="inline-block w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+          </div>
+        <% end %>
+      </div>
+
+             <!-- Player O -->
+       <div class="flex items-center space-x-4">
+         <%= if @game.player_o_id do %>
+           <div class="w-12 h-12 bg-gradient-to-r from-red-500 to-red-600 rounded-full flex items-center justify-center">
+             <span class="text-white font-bold text-xl">O</span>
+           </div>
+           <div>
+             <h3 class="text-lg font-semibold text-gray-800"><%= @game.player_o_name %></h3>
+             <p class="text-sm text-gray-500">Player O</p>
+           </div>
+           <%= if @game.current_player == "o" and @game.status == "active" do %>
+            <div class="ml-auto">
+              <span class="inline-block w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
+            <span class="text-gray-500 font-bold text-xl">?</span>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-gray-500">Waiting for player...</h3>
+            <p class="text-sm text-gray-400">Player O</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Status -->
+  <div class="text-center mb-8">
+    <div class={"text-xl #{get_status_class(@game, @current_user_id)}"}>
+      <%= get_status_message(@game, @current_user_id) %>
+    </div>
+    <!-- Debug info -->
+    <%= if get_player_symbol(@game, @current_user_id) do %>
+      <div class="text-sm text-gray-500 mt-2">
+        You are playing as <%= String.upcase(to_string(get_player_symbol(@game, @current_user_id))) %>
+        (ID: <%= @current_user_id %>)
+      </div>
+    <% else %>
+      <div class="text-sm text-red-500 mt-2">
+        You are not a player in this game (ID: <%= @current_user_id %>). <.link navigate="/games" class="underline">Go back to lobby</.link>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Game Board -->
+  <div class="flex justify-center mb-8">
+    <div class="grid grid-cols-3 gap-2 p-4 bg-gray-100 rounded-xl shadow-lg">
+      <%= for position <- 0..8 do %>
+                 <button 
+           phx-click="make_move"
+           phx-value-position={position}
+           class={get_cell_class(@game, @current_user_id, position)}
+           disabled={not can_make_move?(@game, @current_user_id, position)}
+         >
+           <span class={
+             case Enum.at(@game.board, position) do
+               "x" -> "text-blue-600"
+               "o" -> "text-red-600"
+               _ -> ""
+             end
+           }>
+             <%= format_cell_value(Enum.at(@game.board, position)) %>
+           </span>
+         </button>
+      <% end %>
+    </div>
+  </div>
+
+     <!-- Game Controls -->
+   <div class="flex flex-wrap justify-center gap-4 mb-8">
+     <%= if @game.status in ["finished", "draw"] do %>
+      <button 
+        phx-click="reset_game"
+        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition duration-200"
+      >
+        Play Again
+      </button>
+    <% end %>
+    
+    <button 
+      phx-click="leave_game"
+      class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded-lg transition duration-200"
+    >
+      Leave Game
+    </button>
+    
+    <.link 
+      navigate={~p"/games"}
+      class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg transition duration-200"
+    >
+      Back to Lobby
+    </.link>
+  </div>
+
+     <!-- Game Stats -->
+   <%= if @game.status in ["finished", "draw"] do %>
+     <div class="bg-gray-50 rounded-lg p-6">
+       <h3 class="text-lg font-semibold text-gray-800 mb-4 text-center">Game Over</h3>
+       <div class="text-center space-y-2">
+         <%= case @game.status do %>
+           <% "finished" -> %>
+             <div class="text-2xl font-bold text-gray-800">
+               🏆 <%= Game.get_player(@game, @game.winner).name %> Wins!
+             </div>
+             <div class="text-gray-600">
+               Player <%= String.upcase(@game.winner) %> got three in a row
+             </div>
+           <% "draw" -> %>
+            <div class="text-2xl font-bold text-gray-800">
+              🤝 It's a Draw!
+            </div>
+            <div class="text-gray-600">
+              All squares filled with no winner
+            </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+     <!-- Share Game Link -->
+   <%= if @game.status == "waiting_for_player" do %>
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+      <h3 class="text-lg font-semibold text-blue-800 mb-3">Waiting for Player</h3>
+      <p class="text-blue-700 mb-4">Share this game link with a friend to play together:</p>
+             <div class="flex items-center space-x-2">
+         <input 
+           type="text" 
+           value={url(XoWeb.Endpoint, ~p"/games/#{@game_id}?player=o")}
+           readonly
+           class="flex-1 px-3 py-2 bg-white border border-blue-300 rounded-md font-mono text-sm"
+           onclick="this.select()"
+         />
+        <button 
+          onclick="navigator.clipboard.writeText(this.previousElementSibling.value); this.textContent='Copied!'; setTimeout(() => this.textContent='Copy', 2000)"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition duration-200"
+        >
+          Copy
+        </button>
+      </div>
+    </div>
+  <% end %>
+</div> 
